@@ -40,7 +40,9 @@ export const generateStudentProfileText = async (student: Student): Promise<stri
     // Handle the case where the API response might not contain text.
     return response.text ?? `Could not generate a profile for ${student.name}. The AI returned no text.`;
   } catch (error) {
-    console.error("Error generating student profile:", error);
-    return `An error occurred while generating the profile for ${student.name}. Please try again.`;
+    console.error(`Error generating profile for ${student.name}:`, error);
+    // Re-throw the original error so the UI layer can inspect it and decide
+    // if it's a retryable error (e.g., 503).
+    throw error;
   }
 };

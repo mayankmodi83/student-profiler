@@ -17,4 +17,9 @@ export interface Student {
 
 export interface GeneratedProfile extends Student {
   profileText: string;
+  error?: {
+    message: string;
+    retryable: boolean;
+  };
+  isRetrying?: boolean;
 }

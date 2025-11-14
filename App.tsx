@@ -84,19 +84,66 @@ const App: React.FC = () => {
     const selectedStudents = students.filter(s => selectedStudentIds.has(s.id));
     
     try {
-      const profilePromises = selectedStudents.map(async student => {
-        const profileText = await generateStudentProfileText(student);
-        return { ...student, profileText };
-      });
+      const profilePromises = selectedStudents.map(student => generateStudentProfileText(student));
+      const results = await Promise.allSettled(profilePromises);
 
-      const profiles = await Promise.all(profilePromises);
+      const profiles: GeneratedProfile[] = results.map((result, index) => {
+          const student = selectedStudents[index];
+          if (result.status === 'fulfilled') {
+              return { ...student, profileText: result.value };
+          } else { // 'rejected'
+              const error = result.reason as any;
+              const errorMessage = error?.message || 'An unknown error occurred.';
+              // Check for the specific 503 "overloaded" error to make it retryable
+              const isRetryable = errorMessage.includes('503') || errorMessage.toLowerCase().includes('overloaded');
+              
+              return {
+                  ...student,
+                  profileText: '', // No profile text on error
+                  error: {
+                      message: `Failed to generate: ${errorMessage.split('ApiError: ')[1] || errorMessage}`,
+                      retryable: isRetryable,
+                  }
+              };
+          }
+      });
       setGeneratedProfiles(profiles);
     } catch (error) {
-      console.error("Failed to generate profiles:", error);
-      alert("An error occurred while generating profiles. Please check the console for details.");
+      console.error("An unexpected error occurred during profile generation:", error);
+      alert("An unexpected error occurred. Please check the console for details.");
     } finally {
         setIsGenerating(false);
     }
+  };
+
+  const handleRetryProfile = async (studentId: number) => {
+      const studentToRetry = students.find(s => s.id === studentId);
+      if (!studentToRetry) return;
+
+      // Set the specific profile to a "retrying" state for UI feedback
+      setGeneratedProfiles(prev => prev.map(p => 
+        p.id === studentId ? { ...p, isRetrying: true, error: undefined } : p
+      ));
+
+      try {
+        const profileText = await generateStudentProfileText(studentToRetry);
+        // On success, update the profile with the new text
+        setGeneratedProfiles(prev => prev.map(p => 
+          p.id === studentId ? { ...studentToRetry, profileText, isRetrying: false } : p
+        ));
+      } catch (error) {
+        // On failure, put it back into an error state
+        const errorMessage = (error as any)?.message || 'An unknown error occurred.';
+        const isRetryable = errorMessage.includes('503') || errorMessage.toLowerCase().includes('overloaded');
+        setGeneratedProfiles(prev => prev.map(p => 
+          p.id === studentId ? { 
+            ...studentToRetry, 
+            profileText: '', 
+            isRetrying: false, 
+            error: { message: `Retry failed: ${errorMessage.split('ApiError: ')[1] || errorMessage}`, retryable: isRetryable }
+          } : p
+        ));
+      }
   };
 
   const handleDownloadPdf = async () => {
@@ -111,16 +158,18 @@ const App: React.FC = () => {
     });
     const container = pdfContainerRef.current!;
 
-    for (let i = 0; i < container.children.length; i++) {
-      const pageWrapper = container.children[i] as HTMLElement;
-      const pageElement = pageWrapper.firstChild as HTMLElement; // The actual ProfilePage
+    // We only want to print successful profiles
+    const successfulProfileElements = Array.from(container.children).filter(child => !child.hasAttribute('data-error'));
+
+    for (let i = 0; i < successfulProfileElements.length; i++) {
+      const pageWrapper = successfulProfileElements[i] as HTMLElement;
+      const pageElement = pageWrapper.firstChild as HTMLElement;
       
       const canvas = await html2canvas(pageElement, {
-        scale: 2.5, // Reduced scale slightly for smaller canvas size
+        scale: 2.5,
         useCORS: true, 
         logging: false,
       });
-      // Use JPEG format for much better compression of photos
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -129,14 +178,13 @@ const App: React.FC = () => {
       if (i > 0) {
         pdf.addPage();
       }
-      // Add as JPEG with FAST compression
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
     }
     
-    // Determine filename based on number of profiles
+    const successfulProfiles = generatedProfiles.filter(p => !p.error);
     let filename = 'profiles.pdf';
-    if (generatedProfiles.length === 1) {
-        const student = generatedProfiles[0];
+    if (successfulProfiles.length === 1) {
+        const student = successfulProfiles[0];
         const saneName = sanitizeFilename(student.name);
         const saneCenter = sanitizeFilename(student.center);
         filename = `${saneName}-${saneCenter}.pdf`;
@@ -187,7 +235,7 @@ const App: React.FC = () => {
       {generatedProfiles.length > 0 ? (
         <>
           <PreviewActions 
-            profileCount={generatedProfiles.length}
+            profileCount={generatedProfiles.filter(p => !p.error).length}
             onDownloadPdf={handleDownloadPdf}
             onGoBack={handleGoBack}
             isDownloading={isDownloadingPdf}
@@ -195,8 +243,8 @@ const App: React.FC = () => {
           <main className="flex-grow bg-gray-50 py-8 overflow-y-auto">
             <div ref={pdfContainerRef} className="mx-auto flex flex-col items-center gap-8">
               {generatedProfiles.map(profile => (
-                <div key={profile.id} className="shadow-2xl">
-                  <ProfilePage student={profile} />
+                <div key={profile.id} className="shadow-2xl" data-error={profile.error ? 'true' : undefined}>
+                  <ProfilePage student={profile} onRetry={handleRetryProfile} />
                 </div>
               ))}
             </div>
