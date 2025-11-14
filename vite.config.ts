@@ -1,3 +1,11 @@
+import { webcrypto } from 'node:crypto';
+
+// Polyfill for Web Crypto API. Vite 5.x needs crypto.getRandomValues,
+// which may not be available on the global scope in all Node.js versions.
+if (typeof globalThis.crypto === 'undefined') {
+  globalThis.crypto = webcrypto as any;
+}
+
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
