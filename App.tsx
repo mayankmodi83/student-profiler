@@ -116,11 +116,12 @@ const App: React.FC = () => {
       const pageElement = pageWrapper.firstChild as HTMLElement; // The actual ProfilePage
       
       const canvas = await html2canvas(pageElement, {
-        scale: 3, // Higher scale for better quality
+        scale: 2.5, // Reduced scale slightly for smaller canvas size
         useCORS: true, 
         logging: false,
       });
-      const imgData = canvas.toDataURL('image/png');
+      // Use JPEG format for much better compression of photos
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
 
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
@@ -128,7 +129,8 @@ const App: React.FC = () => {
       if (i > 0) {
         pdf.addPage();
       }
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      // Add as JPEG with FAST compression
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
     }
     
     // Determine filename based on number of profiles
