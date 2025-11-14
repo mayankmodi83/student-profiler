@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI } from "@google/genai";
 import type { Student } from "../types";
 
@@ -10,7 +11,7 @@ export const generateStudentProfileText = async (student: Student): Promise<stri
   const prompt = `
     Generate a warm, inspiring, and positive one-paragraph profile for a student for "Sarjan Foundation", an NGO that supports underprivileged youth with vocational training. The tone should be hopeful, highlighting the student's resilience and potential.
 
-    Weave the following details into a short, compelling narrative. Focus on their strengths and aspirations. Do not just list the facts.
+    Weave the following details into a short, compelling narrative. Focus on their strengths and aspirations. Do not just list the facts. Be sure to sensitively incorporate their socio-economic status as part of the context of the challenges they are overcoming.
 
     Student Details:
     - Name: ${student.name}
@@ -26,7 +27,7 @@ export const generateStudentProfileText = async (student: Student): Promise<stri
     - Training Duration: ${student.trainingduration}
     - Training Fees: ${student.trainingfees}
 
-    Example tone: "Meet ${student.name}, a determined ${student.age}-year-old from ${student.center}. Despite facing challenges, ${student.name} has shown great promise in their studies in ${student.trade}. With the support of Sarjan Foundation, they are building a foundation for a brighter future..."
+    Example tone: "Meet ${student.name}, a determined ${student.age}-year-old from ${student.center}. Coming from a challenging socio-economic background, ${student.name} has shown great promise in their studies in ${student.trade}. With the support of Sarjan Foundation, they are building a foundation for a brighter future..."
     
     Now, write the profile for ${student.name}.
   `;

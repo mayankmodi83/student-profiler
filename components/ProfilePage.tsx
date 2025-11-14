@@ -7,6 +7,41 @@ interface ProfilePageProps {
   student: GeneratedProfile;
 }
 
+/**
+ * Formats a string value into Indian Rupee (INR) currency format.
+ * Handles numbers, "Free", "0", and other text like "Sponsored".
+ * @param fees The fee string to format.
+ * @returns A formatted currency string (e.g., "₹5,000", "Free").
+ */
+const formatToINR = (fees: string): string => {
+  if (!fees) return 'N/A';
+  const lowerCaseFees = fees.trim().toLowerCase();
+
+  // Handle common non-numeric but valid fee statuses
+  if (lowerCaseFees === 'free' || lowerCaseFees === '0') {
+    return 'Free';
+  }
+
+  // Attempt to parse a number from the string
+  const numericValue = parseFloat(fees.replace(/[^0-9.]/g, ''));
+
+  // If it's not a valid number, return the original text (e.g., "Sponsored")
+  if (isNaN(numericValue)) {
+    return fees;
+  }
+
+  // Use the Intl.NumberFormat API for robust, locale-aware currency formatting.
+  const formatter = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+
+  return formatter.format(numericValue);
+};
+
+
 const ProfilePage: React.FC<ProfilePageProps> = ({ student }) => {
   return (
     <div className="bg-white" style={{ width: '210mm', height: '297mm', display: 'flex', flexDirection: 'column' }}>
@@ -18,34 +53,29 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ student }) => {
         <Logo className="h-16 w-auto" />
       </header>
       
-      <main className="flex-grow flex p-16 space-x-12">
-        <div className="w-1/3 flex-shrink-0">
-          <img src={student.photo} alt={student.name} className="w-full rounded-lg shadow-xl object-cover" style={{ aspectRatio: '1 / 1' }} />
-          <div className="mt-8">
-            <ul className="space-y-2 text-gray-700">
-                <li className="flex"><strong className="w-28 font-medium">Trade:</strong><span>{student.trade}</span></li>
-                <li className="flex"><strong className="w-28 font-medium">Duration:</strong><span>{student.trainingduration}</span></li>
-                <li className="flex"><strong className="w-28 font-medium">Fees:</strong><span>{student.trainingfees}</span></li>
-                <li className="flex"><strong className="w-28 font-medium">Education:</strong><span>{student.education}</span></li>
-            </ul>
+      <main className="flex-grow flex flex-col p-16 space-y-8">
+        {/* --- Image and Narrative Row --- */}
+        <div className="flex space-x-12">
+          <div className="w-1/3 flex-shrink-0">
+            <img src={student.photo} alt={student.name} className="w-full rounded-lg shadow-xl object-cover" style={{ aspectRatio: '1 / 1' }} />
+          </div>
+          <div className="w-2/3">
+              <h3 className="text-2xl font-semibold text-blue-700 border-b-2 border-blue-200 pb-2">Profile Narrative</h3>
+              <p className="text-lg text-gray-800 mt-4 leading-relaxed whitespace-pre-wrap font-serif">
+                  {student.profileText}
+              </p>
           </div>
         </div>
-        
-        <div className="w-2/3">
-            <h3 className="text-2xl font-semibold text-blue-700 border-b-2 border-blue-200 pb-2">Profile Narrative</h3>
-            <p className="text-lg text-gray-800 mt-4 leading-relaxed whitespace-pre-wrap font-serif">
-                {student.profileText}
-            </p>
 
-            <div className="mt-8">
-              <h3 className="text-2xl font-semibold text-blue-700 border-b-2 border-blue-200 pb-2">Background</h3>
-               <ul className="mt-4 space-y-2 text-gray-700">
-                <li className="flex"><strong className="w-48 font-medium">Birthdate:</strong><span>{student.birthdate}</span></li>
-                <li className="flex"><strong className="w-48 font-medium">Address:</strong><span>{student.address}</span></li>
-                <li className="flex"><strong className="w-48 font-medium">Socio-Economic Status:</strong><span>{student.socioeconomicstatus}</span></li>
-                <li className="flex items-start pt-2"><strong className="w-48 font-medium flex-shrink-0">Family Background:</strong><span className="italic text-gray-600">{student.familybackground}</span></li>
-              </ul>
-            </div>
+        {/* --- Training Details Section --- */}
+        <div>
+          <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-200 pb-2">Training Details</h3>
+          <ul className="mt-4 grid grid-cols-2 gap-x-8 gap-y-3 text-gray-700 text-base">
+              <li className="flex"><strong className="w-24 font-medium flex-shrink-0">Trade:</strong><span className="break-words">{student.trade}</span></li>
+              <li className="flex"><strong className="w-24 font-medium flex-shrink-0">Education:</strong><span className="break-words">{student.education}</span></li>
+              <li className="flex"><strong className="w-24 font-medium flex-shrink-0">Duration:</strong><span className="break-words">{student.trainingduration}</span></li>
+              <li className="flex"><strong className="w-24 font-medium flex-shrink-0">Fees:</strong><span className="break-words">{formatToINR(student.trainingfees)}</span></li>
+          </ul>
         </div>
       </main>
 
