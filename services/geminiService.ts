@@ -2,15 +2,9 @@
 import { GoogleGenAI } from "@google/genai";
 import type { Student } from "../types";
 
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-  // In a real app, you'd handle this more gracefully.
-  // Here, we'll rely on the environment providing the key.
-  console.warn("Gemini API key not found in environment variables.");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+// Fix: Per coding guidelines, assume API_KEY is available via process.env
+// and use it directly to initialize the client.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const generateStudentProfileText = async (student: Student): Promise<string> => {
   const prompt = `
@@ -42,7 +36,8 @@ export const generateStudentProfileText = async (student: Student): Promise<stri
       model: "gemini-2.5-flash",
       contents: prompt,
     });
-    return response.text;
+    // Handle the case where the API response might not contain text.
+    return response.text ?? `Could not generate a profile for ${student.name}. The AI returned no text.`;
   } catch (error) {
     console.error("Error generating student profile:", error);
     return `An error occurred while generating the profile for ${student.name}. Please try again.`;
