@@ -155,6 +155,31 @@ const calculateAge = (birthdate: string): number => {
     return age;
 };
 
+/**
+ * Transforms a Google Drive file viewer URL into a direct image access URL.
+ * @param url The original Google Drive URL.
+ * @returns A direct image URL or the original URL if it's not a recognized format.
+ */
+const transformGoogleDriveImageUrl = (url: string): string => {
+    if (!url) return '';
+    
+    // This regex captures the file ID from URLs like:
+    // - https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+    // - https://drive.google.com/open?id=FILE_ID
+    const fileIdRegex = /(?:drive\.google\.com\/(?:file\/d\/|open\?id=))([a-zA-Z0-9_-]+)/;
+    const match = url.match(fileIdRegex);
+
+    if (match && match[1]) {
+        const fileId = match[1];
+        // Use the Google User Content endpoint for direct image access
+        return `https://lh3.googleusercontent.com/d/${fileId}`;
+    }
+
+    // Return original URL if it doesn't match, allowing for other image hosts.
+    return url;
+};
+
+
 export const fetchStudentsFromSheet = async (url: string): Promise<Student[]> => {
   // Regex to extract the sheet ID from various Google Sheets URL formats
   const sheetIdRegex = /spreadsheets\/d\/([a-zA-Z0-9-_]+)/;
@@ -209,7 +234,7 @@ export const fetchStudentsFromSheet = async (url: string): Promise<Student[]> =>
       })
       
       const birthdate = studentData.birthdate;
-
+      const photoUrl = studentData.photo;
       return {
         id: parseInt(studentData.id, 10),
         name: studentData.name,
@@ -217,7 +242,7 @@ export const fetchStudentsFromSheet = async (url: string): Promise<Student[]> =>
         birthdate: birthdate,
         age: calculateAge(birthdate),
         familybackground: studentData.familybackground,
-        photo: studentData.photo,
+        photo: transformGoogleDriveImageUrl(photoUrl),
         trade: studentData.trade,
         center: studentData.center,
         socioeconomicstatus: studentData.socioeconomicstatus,

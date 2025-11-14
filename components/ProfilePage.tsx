@@ -1,7 +1,9 @@
 
+
 import React from 'react';
 import type { GeneratedProfile } from '../types';
 import Logo from './Logo';
+import { placeholderImage } from '../assets/placeholder';
 
 interface ProfilePageProps {
   student: GeneratedProfile;
@@ -57,7 +59,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ student }) => {
         {/* --- Image and Narrative Row --- */}
         <div className="flex space-x-12">
           <div className="w-1/3 flex-shrink-0">
-            <img src={student.photo} alt={student.name} className="w-full rounded-lg shadow-xl object-cover" style={{ aspectRatio: '1 / 1' }} />
+            <img src={student.photo || placeholderImage} alt={student.name} className="w-full rounded-lg shadow-xl object-cover bg-gray-100" style={{ aspectRatio: '1 / 1' }} />
           </div>
           <div className="w-2/3">
               <h3 className="text-2xl font-semibold text-blue-700 border-b-2 border-blue-200 pb-2">Profile Narrative</h3>

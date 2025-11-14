@@ -1,6 +1,8 @@
 
+
 import React from 'react';
 import type { Student } from '../types';
+import { placeholderImage } from '../assets/placeholder';
 
 interface StudentCardProps {
   student: Student;
@@ -24,9 +26,9 @@ const StudentCard: React.FC<StudentCardProps> = ({ student, isSelected, onToggle
       
       <div className="flex flex-col h-full">
         <img 
-          src={student.photo} 
+          src={student.photo || placeholderImage} 
           alt={student.name} 
-          className="w-full h-48 object-cover" 
+          className="w-full h-48 object-cover bg-gray-100" 
         />
         <div className="p-4 flex-grow flex flex-col">
           <h3 className="text-lg font-bold text-gray-800">{student.name}</h3>
