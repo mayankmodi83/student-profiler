@@ -2,8 +2,9 @@
 import React from 'react';
 
 interface ActionFooterProps {
-  selectedCount: number;
-  totalCount: number;
+  totalSelectedCount: number;
+  visibleSelectedCount: number;
+  totalVisibleCount: number;
   onGenerate: () => void;
   onSelectAll: () => void;
   onDeselectAll: () => void;
@@ -11,14 +12,15 @@ interface ActionFooterProps {
 }
 
 const ActionFooter: React.FC<ActionFooterProps> = ({ 
-  selectedCount, 
-  totalCount, 
+  totalSelectedCount,
+  visibleSelectedCount,
+  totalVisibleCount,
   onGenerate, 
   onSelectAll, 
   onDeselectAll, 
   isGenerating 
 }) => {
-  const allSelected = selectedCount === totalCount && totalCount > 0;
+  const allVisibleSelected = visibleSelectedCount === totalVisibleCount && totalVisibleCount > 0;
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-gray-100 border-t border-gray-200 z-10">
@@ -29,21 +31,22 @@ const ActionFooter: React.FC<ActionFooterProps> = ({
               <input
                 id="select-all"
                 type="checkbox"
-                checked={allSelected}
-                onChange={allSelected ? onDeselectAll : onSelectAll}
+                checked={allVisibleSelected}
+                onChange={allVisibleSelected ? onDeselectAll : onSelectAll}
                 className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                aria-label={allVisibleSelected ? 'Deselect all visible students' : 'Select all visible students'}
               />
               <label htmlFor="select-all" className="ml-2 text-sm font-medium text-gray-700">
-                {allSelected ? 'Deselect All' : 'Select All'}
+                {allVisibleSelected ? 'Deselect All' : 'Select All'}
               </label>
             </div>
             <p className="text-sm text-gray-600">
-              <span className="font-bold text-blue-600">{selectedCount}</span> of {totalCount} selected
+              <span className="font-bold text-blue-600">{visibleSelectedCount}</span> of {totalVisibleCount} selected
             </p>
           </div>
           <button
             onClick={onGenerate}
-            disabled={selectedCount === 0 || isGenerating}
+            disabled={totalSelectedCount === 0 || isGenerating}
             className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 rounded-md shadow-sm hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
           >
             {isGenerating ? (
@@ -54,7 +57,7 @@ const ActionFooter: React.FC<ActionFooterProps> = ({
                 </svg>
                 Generating...
               </div>
-            ) : `Generate ${selectedCount > 0 ? selectedCount : ''} Profile${selectedCount !== 1 ? 's' : ''}`}
+            ) : `Generate ${totalSelectedCount > 0 ? totalSelectedCount : ''} Profile${totalSelectedCount !== 1 ? 's' : ''}`}
           </button>
         </div>
       </div>

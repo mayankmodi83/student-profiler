@@ -1,36 +1,100 @@
 import type { Student } from '../types';
 
 /**
- * Parses a line of CSV text using a regular expression to handle quoted fields.
- * This is more robust than manual character-by-character parsing.
+ * Parses a line of CSV text using a state machine to handle quoted fields,
+ * commas within quotes, and escaped quotes (""). This is more robust than a regex split.
  */
 const parseCsvLine = (line: string): string[] => {
-    // Regex to split on commas that are not inside double quotes.
-    const regex = /,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/;
-    const fields = line.split(regex);
+    const fields: string[] = [];
+    let currentField = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+
+        if (inQuotes) {
+            if (char === '"') {
+                // Check if this quote is escaped by another quote
+                if (i + 1 < line.length && line[i + 1] === '"') {
+                    // It's an escaped quote, add a single quote to the field
+                    currentField += '"';
+                    i++; // and skip the next character
+                } else {
+                    // It's the closing quote for the field
+                    inQuotes = false;
+                }
+            } else {
+                // It's a regular character inside quotes
+                currentField += char;
+            }
+        } else { // Not in quotes
+            if (char === '"') {
+                // The start of a quoted field.
+                inQuotes = true;
+            } else if (char === ',') {
+                // A field separator
+                fields.push(currentField);
+                currentField = '';
+            } else {
+                // A regular character
+                currentField += char;
+            }
+        }
+    }
+
+    // Add the last field to the array
+    fields.push(currentField);
     
-    // Clean up each field
-    return fields.map(field => {
-        if (field === undefined) {
-          return '';
+    // Trim whitespace from each field, which handles cases like ` 1, "name" `
+    return fields.map(field => field.trim());
+};
+
+/**
+ * Splits a CSV string into an array of row strings, correctly handling
+ * newlines that appear inside quoted fields.
+ * @param csvText The full CSV content as a single string.
+ * @returns An array of strings, where each string is a complete row.
+ */
+const splitCsvIntoRows = (csvText: string): string[] => {
+    const rows: string[] = [];
+    let currentRowStart = 0;
+    let inQuotes = false;
+    // Normalize line endings and trim whitespace from the start/end of the whole text
+    const normalizedText = csvText.replace(/\r\n/g, '\n').trim();
+
+    for (let i = 0; i < normalizedText.length; i++) {
+        const char = normalizedText[i];
+
+        if (char === '"') {
+            // Check for an escaped quote (""). If found, skip the second quote.
+            if (inQuotes && i + 1 < normalizedText.length && normalizedText[i + 1] === '"') {
+                i++;
+            } else {
+                // Otherwise, it's a regular quote, so toggle the inQuotes flag.
+                inQuotes = !inQuotes;
+            }
         }
-        // Trim whitespace from the start and end
-        let value = field.trim();
-        
-        // If the field is quoted (starts and ends with a quote), remove them.
-        if (value.startsWith('"') && value.endsWith('"')) {
-            value = value.substring(1, value.length - 1);
+
+        // A newline character marks the end of a row, but only if we're not inside quotes.
+        if (char === '\n' && !inQuotes) {
+            const row = normalizedText.substring(currentRowStart, i);
+            rows.push(row);
+            currentRowStart = i + 1; // The next row starts after the newline character.
         }
-        
-        // In CSV, a quote inside a quoted string is escaped by another quote ("").
-        // Replace these escaped double quotes with a single double quote.
-        return value.replace(/""/g, '"');
-    });
+    }
+
+    // After the loop, add the final row if it exists.
+    if (currentRowStart < normalizedText.length) {
+        rows.push(normalizedText.substring(currentRowStart));
+    }
+
+    // Filter out any resulting empty rows, which can happen with trailing newlines.
+    return rows.filter(row => row.trim() !== '');
 };
 
 
 /**
- * Parses a date string in DD-MMM-YY format (e.g., "15-Jan-02") into a Date object.
+ * Parses a date string in DD-Month-YY format (e.g., "15-Jan-02") into a Date object.
  * Also handles standard formats like YYYY-MM-DD.
  * @param dateStr The date string to parse.
  * @returns A Date object or null if parsing fails.
@@ -38,11 +102,11 @@ const parseCsvLine = (line: string): string[] => {
 const parseBirthdate = (dateStr: string): Date | null => {
     if (!dateStr) return null;
 
-    // Try parsing DD-MMM-YY format first
-    const parts = dateStr.match(/^(\d{1,2})-([a-zA-Z]{3})-(\d{2})$/);
+    // Try parsing DD-Month-YY format, allowing for long month names
+    const parts = dateStr.match(/^(\d{1,2})-([a-zA-Z]+)-(\d{2})$/);
     if (parts) {
         const day = parseInt(parts[1], 10);
-        const monthStr = parts[2].toLowerCase();
+        const monthStr = parts[2].toLowerCase().substring(0, 3); // "june" -> "jun"
         const year = parseInt(parts[3], 10);
 
         const monthMap: { [key: string]: number } = {
@@ -54,7 +118,6 @@ const parseBirthdate = (dateStr: string): Date | null => {
         if (month === undefined) return null;
 
         // Convert 2-digit year to 4-digit year.
-        // If the 2-digit year is greater than the current 2-digit year, it's from the previous century.
         const currentYearLastTwoDigits = new Date().getFullYear() % 100;
         const fullYear = year > currentYearLastTwoDigits ? 1900 + year : 2000 + year;
 
@@ -76,7 +139,7 @@ const parseBirthdate = (dateStr: string): Date | null => {
 
 
 /**
- * Calculates age from a birthdate string. Supports "DD-MMM-YY" and "YYYY-MM-DD".
+ * Calculates age from a birthdate string.
  */
 const calculateAge = (birthdate: string): number => {
     if (!birthdate) return 0;
@@ -111,7 +174,8 @@ export const fetchStudentsFromSheet = async (url: string): Promise<Student[]> =>
       throw new Error(`Failed to fetch sheet. Status: ${response.status}`);
     }
     const csvText = await response.text();
-    const lines = csvText.trim().split(/\r?\n/);
+    // Use the robust row splitter that handles newlines within fields
+    const lines = splitCsvIntoRows(csvText);
     
     if (lines.length < 2) {
       throw new Error("The sheet is empty or has only a header row.");
@@ -140,10 +204,9 @@ export const fetchStudentsFromSheet = async (url: string): Promise<Student[]> =>
       headers.forEach((header, i) => {
         // Clean the header: remove surrounding quotes, then all internal spaces.
         const cleanHeader = header.replace(/^"|"$/g, '').replace(/\s/g, '');
-        // Clean the value: remove surrounding quotes. .trim() is already done by parseCsvLine.
-        const cleanValue = (values[i] || '').replace(/^"|"$/g, '');
-        studentData[cleanHeader] = cleanValue;
-      });
+        // Values from parseCsvLine are already clean (trimmed and unquoted)
+        studentData[cleanHeader] = values[i] || '';
+      })
       
       const birthdate = studentData.birthdate;
 

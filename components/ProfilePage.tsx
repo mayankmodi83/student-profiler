@@ -22,8 +22,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ student }) => {
         <div className="w-1/3 flex-shrink-0">
           <img src={student.photo} alt={student.name} className="w-full rounded-lg shadow-xl object-cover" style={{ aspectRatio: '1 / 1' }} />
           <div className="mt-8">
-            <h3 className="text-2xl font-semibold text-blue-700 border-b-2 border-blue-200 pb-2">Training Details</h3>
-            <ul className="mt-4 space-y-2 text-gray-700">
+            <ul className="space-y-2 text-gray-700">
                 <li className="flex"><strong className="w-28 font-medium">Trade:</strong><span>{student.trade}</span></li>
                 <li className="flex"><strong className="w-28 font-medium">Duration:</strong><span>{student.trainingduration}</span></li>
                 <li className="flex"><strong className="w-28 font-medium">Fees:</strong><span>{student.trainingfees}</span></li>
