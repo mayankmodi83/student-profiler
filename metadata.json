@@ -1,0 +1,5 @@
+{
+  "name": "Sarjan Foundation Student Profiler",
+  "description": "An application for the Sarjan Foundation to select students from a dataset and use AI to generate beautifully formatted PDF profiles for them.",
+  "requestFramePermissions": []
+}
