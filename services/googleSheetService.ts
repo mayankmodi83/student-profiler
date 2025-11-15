@@ -171,8 +171,10 @@ const transformGoogleDriveImageUrl = (url: string): string => {
 
     if (match && match[1]) {
         const fileId = match[1];
-        // Use the Google User Content endpoint for direct image access
-        return `https://lh3.googleusercontent.com/d/${fileId}`;
+        // Use the Google User Content endpoint for direct image access.
+        // Appending '=s800' requests a version where the longest side is 800px,
+        // which significantly improves photo quality for the PDF.
+        return `https://lh3.googleusercontent.com/d/${fileId}=s800`;
     }
 
     // Return original URL if it doesn't match, allowing for other image hosts.
