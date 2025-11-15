@@ -1,6 +1,6 @@
 
 
-import React, { useState, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import type { Student, GeneratedProfile } from './types';
@@ -32,17 +32,50 @@ const App: React.FC = () => {
   const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
   const [sheetImportState, setSheetImportState] = useState<{loading: boolean, error: string | null}>({ loading: false, error: null});
   const [isDownloadingPdf, setIsDownloadingPdf] = useState<boolean>(false);
-  const [tradeFilter, setTradeFilter] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [initialLoadState, setInitialLoadState] = useState<{loading: boolean, error: string | null}>({ loading: false, error: null});
   const pdfContainerRef = useRef<HTMLDivElement>(null);
 
+  const handleDeselectAll = useCallback(() => {
+    setSelectedStudentIds(new Set());
+  }, []);
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+        const defaultSheetUrl = process.env.DEFAULT_SHEET;
+        if (!defaultSheetUrl || defaultSheetUrl.trim() === '') {
+            // No default sheet configured, do nothing. The user can import manually.
+            return;
+        }
+
+        setInitialLoadState({ loading: true, error: null });
+        try {
+            const newStudents = await fetchStudentsFromSheet(defaultSheetUrl);
+            setStudents(newStudents);
+            handleDeselectAll(); // Clear any selections
+            setInitialLoadState({ loading: false, error: null });
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : "An unknown error occurred during initial load.";
+            setInitialLoadState({ loading: false, error: errorMessage });
+        }
+    };
+
+    loadInitialData();
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
   const filteredStudents = useMemo(() => {
-    if (!tradeFilter) {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) {
       return students;
     }
     return students.filter(student =>
-      student.trade.toLowerCase().includes(tradeFilter.toLowerCase())
+      student.name.toLowerCase().includes(query) ||
+      student.trade.toLowerCase().includes(query) ||
+      student.address.toLowerCase().includes(query)
     );
-  }, [students, tradeFilter]);
+  }, [students, searchQuery]);
 
   const visibleSelectedCount = useMemo(() => {
     const filteredIds = new Set(filteredStudents.map(s => s.id));
@@ -70,10 +103,6 @@ const App: React.FC = () => {
   const handleSelectAll = useCallback(() => {
     setSelectedStudentIds(new Set(filteredStudents.map(s => s.id)));
   }, [filteredStudents]);
-
-  const handleDeselectAll = useCallback(() => {
-    setSelectedStudentIds(new Set());
-  }, []);
 
   const handleGenerateProfiles = async () => {
     if (selectedStudentIds.size === 0) return;
@@ -268,13 +297,13 @@ const App: React.FC = () => {
                             </div>
                             <input
                                 type="text"
-                                name="trade-filter"
-                                id="trade-filter"
+                                name="search-filter"
+                                id="search-filter"
                                 className="block w-full rounded-md border-0 py-1.5 pl-10 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
-                                placeholder="Filter by trade..."
-                                value={tradeFilter}
-                                onChange={(e) => setTradeFilter(e.target.value)}
-                                aria-label="Filter students by trade"
+                                placeholder="Search by name, trade, or location..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                aria-label="Search students by name, trade, or location"
                             />
                         </div>
                         <button
@@ -289,7 +318,32 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {students.length > 0 ? (
+                {initialLoadState.loading ? (
+                    <div className="flex flex-col items-center justify-center text-center py-20 px-6">
+                        <svg className="animate-spin h-12 w-12 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <p className="text-gray-600 text-lg mt-4 font-medium">Loading initial student data...</p>
+                    </div>
+                ) : initialLoadState.error ? (
+                     <div className="text-center py-20 px-6 border-2 border-dashed border-red-300 rounded-lg bg-red-50">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <h3 className="mt-2 text-lg font-medium text-red-900">Failed to load student data</h3>
+                        <p className="mt-1 text-sm text-red-600">{initialLoadState.error}</p>
+                        <div className="mt-6">
+                            <button
+                                onClick={openImportModal}
+                                type="button"
+                                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                            >
+                                Import Manually
+                            </button>
+                        </div>
+                    </div>
+                ) : students.length > 0 ? (
                     <StudentList
                     students={filteredStudents}
                     selectedStudentIds={selectedStudentIds}

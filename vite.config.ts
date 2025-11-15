@@ -16,7 +16,8 @@ export default defineConfig(({ mode }) => {
     base: '/profiler/',
     plugins: [react()],
     define: {
-      'process.env.API_KEY': JSON.stringify(env.API_KEY)
+      'process.env.API_KEY': JSON.stringify(env.API_KEY),
+      'process.env.DEFAULT_SHEET': JSON.stringify(env.DEFAULT_SHEET)
     }
   }
 })
