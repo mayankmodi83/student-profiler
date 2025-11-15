@@ -1,4 +1,7 @@
+
 import { webcrypto } from 'node:crypto';
+// Fix: Import process from 'node:process' to get correct typings for process.cwd().
+import process from 'node:process';
 
 // Polyfill for Web Crypto API. Vite 5.x needs crypto.getRandomValues,
 // which may not be available on the global scope in all Node.js versions.

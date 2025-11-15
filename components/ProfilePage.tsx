@@ -100,10 +100,19 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ student, onRetry }) => {
         <Logo className="h-16 w-auto" />
       </header>
       
-      <main className="flex-grow flex flex-col p-16 space-y-8">
+      <main className="flex-grow flex p-16">
         <div className="flex space-x-12">
-          <div className="w-1/3 flex-shrink-0">
+          <div className="w-1/3 flex-shrink-0 flex flex-col space-y-6">
             <img src={student.photo || placeholderImage} alt={student.name} className="w-full rounded-lg shadow-xl object-cover bg-gray-100" style={{ aspectRatio: '1 / 1' }} />
+             <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+              <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-200 pb-2 mb-4">Training Details</h3>
+              <ul className="grid grid-cols-1 gap-y-3 text-gray-700 text-base">
+                  <li className="flex items-start"><strong className="w-24 font-medium flex-shrink-0">Trade:</strong><span className="break-words min-w-0">{student.trade}</span></li>
+                  <li className="flex items-start"><strong className="w-24 font-medium flex-shrink-0">Education:</strong><span className="break-words min-w-0">{student.education}</span></li>
+                  <li className="flex items-start"><strong className="w-24 font-medium flex-shrink-0">Duration:</strong><span className="break-words min-w-0">{student.trainingduration}</span></li>
+                  <li className="flex items-start"><strong className="w-24 font-medium flex-shrink-0">Fees:</strong><span className="break-words min-w-0">{formatToINR(student.trainingfees)}</span></li>
+              </ul>
+            </div>
           </div>
           <div className="w-2/3">
               <h3 className="text-2xl font-semibold text-blue-700 border-b-2 border-blue-200 pb-2">Profile Narrative</h3>
@@ -111,16 +120,6 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ student, onRetry }) => {
                   {student.profileText}
               </p>
           </div>
-        </div>
-
-        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-          <h3 className="text-xl font-semibold text-blue-700 border-b-2 border-blue-200 pb-2 mb-4">Training Details</h3>
-          <ul className="grid grid-cols-2 gap-x-8 gap-y-3 text-gray-700 text-base">
-              <li className="flex items-start"><strong className="w-24 font-medium flex-shrink-0">Trade:</strong><span className="break-words min-w-0">{student.trade}</span></li>
-              <li className="flex items-start"><strong className="w-24 font-medium flex-shrink-0">Education:</strong><span className="break-words min-w-0">{student.education}</span></li>
-              <li className="flex items-start"><strong className="w-24 font-medium flex-shrink-0">Duration:</strong><span className="break-words min-w-0">{student.trainingduration}</span></li>
-              <li className="flex items-start"><strong className="w-24 font-medium flex-shrink-0">Fees:</strong><span className="break-words min-w-0">{formatToINR(student.trainingfees)}</span></li>
-          </ul>
         </div>
       </main>
 

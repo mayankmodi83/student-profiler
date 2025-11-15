@@ -188,7 +188,8 @@ const App: React.FC = () => {
     const container = pdfContainerRef.current!;
 
     // We only want to print successful profiles
-    const successfulProfileElements = Array.from(container.children).filter(child => !child.hasAttribute('data-error'));
+    // Fix: Cast child to Element to fix TypeScript error on 'hasAttribute'.
+    const successfulProfileElements = Array.from(container.children).filter(child => !(child as Element).hasAttribute('data-error'));
 
     for (let i = 0; i < successfulProfileElements.length; i++) {
       const pageWrapper = successfulProfileElements[i] as HTMLElement;
